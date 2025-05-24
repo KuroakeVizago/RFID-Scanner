@@ -6,7 +6,6 @@ LiquidCrystal_I2C lcd(0x27, 16, 2); // 0x27 is most common
 
 void setup() {
   Serial.begin(115200);
-
   lcd.init();          // Initialize LCD
   lcd.backlight();     // Turn on backlight
   lcd.setCursor(0, 0); // Column 0, Row 0
@@ -14,6 +13,7 @@ void setup() {
   lcd.setCursor(0, 1); // Column 0, Row 1
   lcd.print("ESP32 + LCD");
   lcd.setCursor(0, 2); // Delete the cursor
+
 }
 
 void loop() {

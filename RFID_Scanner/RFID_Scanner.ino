@@ -5,8 +5,8 @@
 #include <WiFi.h>
 #include <time.h>
 
-const char* ssid = "Moshi-Mosh-2";
-const char* password = "12345678";
+const char* ssid = "Yasapintar";
+const char* password = "tuban456";
 
 // Define RC522 pins
 #define SS_PIN 5   // GPIO5 (D5)
@@ -44,12 +44,15 @@ enum ABSEN_MODE {
 ABSEN_MODE absenState = MASUK;
 
 enum APP_STATE_ENUM {
-  INIT_STATE,
+  INIT_STATE_ABSEN,
   WAITING_CARD_ABSEN,
   CARD_DETECTED_ABSEN,
+  INIT_STATE_ADD,
+  WAITING_CARD_ADD,
+  CARD_DETECTED_ADD,
 };
 
-APP_STATE_ENUM appStateCurrent = INIT_STATE;
+APP_STATE_ENUM appStateCurrent = INIT_STATE_ABSEN;
 
 void setup() {
   // INIT Button
@@ -90,66 +93,25 @@ void setup() {
 void loop() {
   listenButton();
 
-  if (appStateCurrent == INIT_STATE) {
-    appStandby();
-    appStateCurrent = WAITING_CARD_ABSEN;
-  }
-
-  if (appStateCurrent == WAITING_CARD_ABSEN) {
-    // Update clock every second
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= clockUpdateInterval) {
-      previousMillis = currentMillis;
-
-      // Display clock
-      lcd.setCursor(0, 1);
-      lcd.print(getTimeStr());
-    }
-
-    lcd.setCursor(9, 1);
-    if (absenState == MASUK) {
-      lcd.print("MASUK ");
-    }
-    if (absenState == PULANG) {
-      lcd.print("PULANG");
-    }
-
-    // Look for new RFID card
-    if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
-      return;
-    }
-
-    appStateCurrent = CARD_DETECTED_ABSEN;
-  }
-
-  if (appStateCurrent == CARD_DETECTED_ABSEN) {
-    uid = "";
-    // Build UID string
-    for (byte i = 0; i < rfid.uid.size; i++) {
-      if (rfid.uid.uidByte[i] < 0x10) uid += "0";
-      uid += String(rfid.uid.uidByte[i], HEX);
-    }
-    uid.toUpperCase();
-
-    // Print to Serial
-    Serial.println("Card UID: " + uid);
-
-    // Display on LCD
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Kartu Terdeteksi:");
-    lcd.setCursor(0, 1);
-    lcd.print(uid);
-
-    beep();
-
-    delay(3000);  // Hold message
-
-    appStateCurrent = INIT_STATE;
-
-    // Halt and cleanup
-    rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
+  switch (appStateCurrent) {
+    case INIT_STATE_ABSEN:
+      appInitStateAbsen();
+      break;
+    case WAITING_CARD_ABSEN:
+      appWaitingCardAbsen();
+      break;
+    case CARD_DETECTED_ABSEN:
+      appCardDetectedAbsen();
+      break;
+    case INIT_STATE_ADD:
+      appInitStateAdd();
+      break;
+    case WAITING_CARD_ADD:
+      appWaitingCardAdd();
+      break;
+    case CARD_DETECTED_ADD:
+      appCardDetectedAdd();
+      break;
   }
 }
 
@@ -159,10 +121,120 @@ void beep() {
   digitalWrite(BUZZER_PIN, LOW);   // Turn buzzer off
 }
 
-void appStandby() {
+void appInitStateAdd() {
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Registrasi Kartu");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Tempel Kartu...");
+
+  appStateCurrent = WAITING_CARD_ADD;
+}
+
+void appWaitingCardAbsen() {
+  // Update clock every second
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= clockUpdateInterval) {
+    previousMillis = currentMillis;
+
+    // Display clock
+    lcd.setCursor(0, 0);
+    lcd.print(getTimeStr());
+  }
+
+  lcd.setCursor(9, 0);
+  if (absenState == MASUK) {
+    lcd.print("MASUK ");
+  }
+  if (absenState == PULANG) {
+    lcd.print("PULANG");
+  }
+
+  // Look for new RFID card
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  appStateCurrent = CARD_DETECTED_ABSEN;
+}
+
+void appCardDetectedAbsen() {
+  uid = "";
+  // Build UID string
+  for (byte i = 0; i < rfid.uid.size; i++) {
+    if (rfid.uid.uidByte[i] < 0x10) uid += "0";
+    uid += String(rfid.uid.uidByte[i], HEX);
+  }
+  uid.toUpperCase();
+
+  // Print to Serial
+  Serial.println("Card UID: " + uid);
+
+  // Display on LCD
   lcd.clear();
   lcd.setCursor(0, 0);
+  lcd.print("Kartu Terdeteksi:");
+  lcd.setCursor(0, 1);
+  lcd.print(uid);
+
+  beep();
+
+  delay(3000);  // Hold message
+
+  appStateCurrent = INIT_STATE_ABSEN;
+
+  // Halt and cleanup
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+}
+
+void appCardDetectedAdd() {
+  uid = "";
+  // Build UID string
+  for (byte i = 0; i < rfid.uid.size; i++) {
+    if (rfid.uid.uidByte[i] < 0x10) uid += "0";
+    uid += String(rfid.uid.uidByte[i], HEX);
+  }
+  uid.toUpperCase();
+
+  // Print to Serial
+  Serial.println("Card UID: " + uid);
+
+  // Display on LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Kartu Terdeteksi:");
+  lcd.setCursor(0, 1);
+  lcd.print(uid);
+
+  beep();
+
+  delay(3000);  // Hold message
+
+  appStateCurrent = INIT_STATE_ADD;
+
+  // Halt and cleanup
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+}
+
+void appWaitingCardAdd() {
+  // Look for new RFID card
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  appStateCurrent = CARD_DETECTED_ADD;
+}
+
+void appInitStateAbsen() {
+  lcd.clear();
+  lcd.setCursor(0, 1);
   lcd.print("Tempel Kartu...");
+
+  appStateCurrent = WAITING_CARD_ABSEN;
 }
 
 void appConnectWifi() {
@@ -211,19 +283,24 @@ void listenButton() {
   if (reading == 1 && appButtonStateCurrent == RELEASED) {
     Serial.println("NYALA");
     appButtonStateCurrent = PRESSED;
+
+
+    if (appStateCurrent == WAITING_CARD_ABSEN && absenState == MASUK) {
+      absenState = PULANG;
+    } else if (appStateCurrent == WAITING_CARD_ABSEN && absenState == PULANG) {
+      appStateCurrent = INIT_STATE_ADD;
+    } else if (appStateCurrent == WAITING_CARD_ADD) {
+      appStateCurrent = INIT_STATE_ABSEN;
+      absenState = MASUK;
+    }
+
+    Serial.println(appStateCurrent);
+
+    beep();
   }
 
   if (reading == 0 && appButtonStateCurrent == PRESSED) {
     Serial.println("MATI");
     appButtonStateCurrent = RELEASED;
-
-
-    if (absenState == MASUK) {
-      absenState = PULANG;
-    } else if (absenState == PULANG) {
-      absenState = MASUK;
-    }
-
-    beep();
   }
 }

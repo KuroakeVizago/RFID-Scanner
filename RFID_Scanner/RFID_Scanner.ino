@@ -16,8 +16,10 @@
 MFRC522 rfid(SS_PIN, RST_PIN);
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Check your LCD I2C address if not 0x27
 
+String uid = "";
+
 void setup() {
-  
+  // Init buzzer
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW); // Keep buzzer off initially
 
@@ -29,8 +31,8 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   lcd.init();
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Scan your card");
+
+  appStandby();
 
   // Init SPI and RFID
   SPI.begin(); // uses default SPI pins
@@ -45,8 +47,8 @@ void loop() {
     return;
   }
 
+  uid = "";
   // Build UID string
-  String uid = "";
   for (byte i = 0; i < rfid.uid.size; i++) {
     if (rfid.uid.uidByte[i] < 0x10) uid += "0";
     uid += String(rfid.uid.uidByte[i], HEX);
@@ -59,16 +61,15 @@ void loop() {
   // Display on LCD
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Card UID:");
+  lcd.print("Kartu Terdeteksi:");
   lcd.setCursor(0, 1);
   lcd.print(uid);
 
   beep();
 
   delay(3000); // Hold message
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Scan your card");
+  
+  appStandby();
 
   // Halt and cleanup
   rfid.PICC_HaltA();
@@ -80,4 +81,10 @@ void beep() {
   digitalWrite(BUZZER_PIN, HIGH); // Turn buzzer on
   delay(100);                     // Duration of beep
   digitalWrite(BUZZER_PIN, LOW);  // Turn buzzer off
+}
+
+void appStandby(){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Tmpl Kartu Absen");
 }

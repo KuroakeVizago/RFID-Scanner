@@ -3,6 +3,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <WiFi.h>
+#include <time.h>
 
 const char* ssid = "Moshi-Mosh-2";
 const char* password = "12345678";
@@ -21,6 +22,10 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Check your LCD I2C address if not 0x27
 
 String uid = "";
+
+// Timing
+unsigned long previousMillis = 0;
+const long clockUpdateInterval = 1000;  // update every 1 second
 
 enum APP_STATE_ENUM {
   INIT_STATE,
@@ -46,6 +51,16 @@ void setup() {
 
   appConnectWifi();
 
+  // Initialize time from NTP
+  configTzTime("WIB-7", "id.pool.ntp.org", "asia.pool.ntp.org");
+
+  struct tm timeinfo;
+  while (!getLocalTime(&timeinfo)) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Time initialized");
+
   // Init SPI and RFID
   SPI.begin();  // uses default SPI pins
   rfid.PCD_Init();
@@ -60,6 +75,16 @@ void loop() {
   }
 
   if (appStateCurrent == WAITING_CARD_ABSEN) {
+    // Update clock every second
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= clockUpdateInterval) {
+      previousMillis = currentMillis;
+
+      // Display clock
+      lcd.setCursor(0, 1);
+      lcd.print(getTimeStr());
+    }
+
     // Look for new RFID card
     if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
       return;
@@ -134,7 +159,18 @@ void appConnectWifi() {
   lcd.clear();
 
   lcd.setCursor(0, 0);
-  lcd.print("WiFi Connected.");
+  lcd.print("WiFi Connected");
 
   delay(2000);
+}
+
+// Function to get current time as string
+String getTimeStr() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    return "No Time";
+  }
+  char buffer[9];
+  strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
+  return String(buffer);
 }

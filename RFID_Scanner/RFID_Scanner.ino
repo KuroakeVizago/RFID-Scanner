@@ -27,6 +27,22 @@ String uid = "";
 unsigned long previousMillis = 0;
 const long clockUpdateInterval = 1000;  // update every 1 second
 
+const int buttonPin = 2;  // D4 on Wemos D1 R32 (GPIO2)
+
+enum APP_BUTTON_STATE_ENUM {
+  PRESSED,
+  RELEASED,
+};
+
+APP_BUTTON_STATE_ENUM appButtonStateCurrent = RELEASED;
+
+enum ABSEN_MODE {
+  MASUK,
+  PULANG,
+};
+
+ABSEN_MODE absenState = MASUK;
+
 enum APP_STATE_ENUM {
   INIT_STATE,
   WAITING_CARD_ABSEN,
@@ -36,6 +52,9 @@ enum APP_STATE_ENUM {
 APP_STATE_ENUM appStateCurrent = INIT_STATE;
 
 void setup() {
+  // INIT Button
+  pinMode(buttonPin, INPUT_PULLUP);  // Button uses internal pull-up
+
   // Init buzzer
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);  // Keep buzzer off initially
@@ -69,6 +88,8 @@ void setup() {
 }
 
 void loop() {
+  listenButton();
+
   if (appStateCurrent == INIT_STATE) {
     appStandby();
     appStateCurrent = WAITING_CARD_ABSEN;
@@ -83,6 +104,14 @@ void loop() {
       // Display clock
       lcd.setCursor(0, 1);
       lcd.print(getTimeStr());
+    }
+
+    lcd.setCursor(9, 1);
+    if (absenState == MASUK) {
+      lcd.print("MASUK ");
+    }
+    if (absenState == PULANG) {
+      lcd.print("PULANG");
     }
 
     // Look for new RFID card
@@ -173,4 +202,28 @@ String getTimeStr() {
   char buffer[9];
   strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
   return String(buffer);
+}
+
+void listenButton() {
+
+  int reading = digitalRead(buttonPin);
+
+  if (reading == 1 && appButtonStateCurrent == RELEASED) {
+    Serial.println("NYALA");
+    appButtonStateCurrent = PRESSED;
+  }
+
+  if (reading == 0 && appButtonStateCurrent == PRESSED) {
+    Serial.println("MATI");
+    appButtonStateCurrent = RELEASED;
+
+
+    if (absenState == MASUK) {
+      absenState = PULANG;
+    } else if (absenState == PULANG) {
+      absenState = MASUK;
+    }
+
+    beep();
+  }
 }

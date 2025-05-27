@@ -2,6 +2,10 @@
 #include <LiquidCrystal_I2C.h>
 #include <SPI.h>
 #include <MFRC522.h>
+#include <WiFi.h>
+
+const char* ssid = "Moshi-Mosh-2";
+const char* password = "12345678";
 
 // Define RC522 pins
 #define SS_PIN 5   // GPIO5 (D5)
@@ -39,6 +43,8 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   lcd.init();
   lcd.backlight();
+
+  appConnectWifi();
 
   // Init SPI and RFID
   SPI.begin();  // uses default SPI pins
@@ -102,5 +108,33 @@ void beep() {
 void appStandby() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Tmpl Kartu Absen");
+  lcd.print("Tempel Kartu...");
+}
+
+void appConnectWifi() {
+  lcd.clear();
+
+
+  lcd.setCursor(0, 0);
+  lcd.print("Connecting to");
+
+  lcd.setCursor(0, 1);
+  lcd.print("WiFi.....");
+
+  // Connect to Wi-Fi
+  Serial.println("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi connected.");
+
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Connected.");
+
+  delay(2000);
 }

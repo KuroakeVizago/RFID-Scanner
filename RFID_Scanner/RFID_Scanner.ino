@@ -59,6 +59,7 @@ enum APP_STATE_ENUM {
   INIT_STATE_BOT,
   WAITING_CARD_BOT,
   CARD_DETECTED_BOT,
+  CARD_RESULT_BOT,
 };
 
 APP_STATE_ENUM appStateCurrent = INIT_STATE_ABSEN;
@@ -371,9 +372,62 @@ void appCardDetectedBot() {
 
   beep();
 
-  delay(3000);  // Hold message
 
-  appStateCurrent = INIT_STATE_BOT;
+  HTTPClient http;
+
+  String url = API_ENDPOINT + "/device/register-telegram?serial=" + DEVICE_SERIAL_NUMBER + "&no_kartu=" + uid;  // Ganti dengan URL kamu
+  Serial.println(url);
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+    String payload = http.getString();
+    Serial.println("Response:");
+    Serial.println(payload);
+
+
+    if (payload.indexOf("CARD_NOT_FOUND") >= 0) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Kartu belum");
+
+      lcd.setCursor(0, 1);
+      lcd.print("terdaftar");
+
+      delay(2000);
+
+      appStateCurrent = INIT_STATE_BOT;
+    } else {
+      String kode = explodeGetByIndex(payload, ';', 1);
+      String nama = explodeGetByIndex(payload, ';', 2);
+
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(nama);
+
+      lcd.setCursor(0, 1);
+      lcd.print(kode);
+
+      appStateCurrent = CARD_RESULT_BOT;
+    }
+
+  } else {
+    Serial.print("Error: ");
+    Serial.println(http.errorToString(httpCode).c_str());
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Gagal!");
+
+    lcd.setCursor(0, 1);
+    lcd.print("Ada Kesalahan");
+
+    delay(3000);
+
+    appStateCurrent = INIT_STATE_BOT;
+  }
+
+  http.end();
 
   // Halt and cleanup
   rfid.PICC_HaltA();
@@ -463,6 +517,8 @@ void listenButton() {
     } else if (appStateCurrent == WAITING_CARD_BOT) {
       appStateCurrent = INIT_STATE_ABSEN;
       absenState = MASUK;
+    } else if (appStateCurrent == CARD_RESULT_BOT) {
+      appStateCurrent = INIT_STATE_BOT;
     }
 
     Serial.println(appStateCurrent);

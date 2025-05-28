@@ -47,9 +47,14 @@ enum APP_STATE_ENUM {
   INIT_STATE_ABSEN,
   WAITING_CARD_ABSEN,
   CARD_DETECTED_ABSEN,
+
   INIT_STATE_ADD,
   WAITING_CARD_ADD,
   CARD_DETECTED_ADD,
+
+  INIT_STATE_BOT,
+  WAITING_CARD_BOT,
+  CARD_DETECTED_BOT,
 };
 
 APP_STATE_ENUM appStateCurrent = INIT_STATE_ABSEN;
@@ -112,6 +117,15 @@ void loop() {
     case CARD_DETECTED_ADD:
       appCardDetectedAdd();
       break;
+    case INIT_STATE_BOT:
+      appInitStateBot();
+      break;
+    case WAITING_CARD_BOT:
+      appWaitingCardBot();
+      break;
+    case CARD_DETECTED_BOT:
+      appCardDetectedBot();
+      break;
   }
 }
 
@@ -132,6 +146,19 @@ void appInitStateAdd() {
 
   appStateCurrent = WAITING_CARD_ADD;
 }
+
+void appInitStateBot() {
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Telegram Bot");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Tempel Kartu...");
+
+  appStateCurrent = WAITING_CARD_BOT;
+}
+
 
 void appWaitingCardAbsen() {
   // Update clock every second
@@ -220,6 +247,36 @@ void appCardDetectedAdd() {
   rfid.PCD_StopCrypto1();
 }
 
+void appCardDetectedBot() {
+  uid = "";
+  // Build UID string
+  for (byte i = 0; i < rfid.uid.size; i++) {
+    if (rfid.uid.uidByte[i] < 0x10) uid += "0";
+    uid += String(rfid.uid.uidByte[i], HEX);
+  }
+  uid.toUpperCase();
+
+  // Print to Serial
+  Serial.println("Card UID: " + uid);
+
+  // Display on LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Kartu Terdeteksi:");
+  lcd.setCursor(0, 1);
+  lcd.print(uid);
+
+  beep();
+
+  delay(3000);  // Hold message
+
+  appStateCurrent = INIT_STATE_BOT;
+
+  // Halt and cleanup
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+}
+
 void appWaitingCardAdd() {
   // Look for new RFID card
   if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
@@ -227,6 +284,15 @@ void appWaitingCardAdd() {
   }
 
   appStateCurrent = CARD_DETECTED_ADD;
+}
+
+void appWaitingCardBot() {
+  // Look for new RFID card
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  appStateCurrent = CARD_DETECTED_BOT;
 }
 
 void appInitStateAbsen() {
@@ -289,7 +355,9 @@ void listenButton() {
       absenState = PULANG;
     } else if (appStateCurrent == WAITING_CARD_ABSEN && absenState == PULANG) {
       appStateCurrent = INIT_STATE_ADD;
-    } else if (appStateCurrent == WAITING_CARD_ADD) {
+    } else if (appStateCurrent == WAITING_CARD_ADD && absenState == PULANG) {
+      appStateCurrent = INIT_STATE_BOT;
+    } else if (appStateCurrent == WAITING_CARD_BOT) {
       appStateCurrent = INIT_STATE_ABSEN;
       absenState = MASUK;
     }

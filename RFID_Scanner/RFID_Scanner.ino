@@ -248,7 +248,7 @@ void appCardDetectedAbsen() {
 
       delay(2000);
     }
-    if (payload.indexOf("ABSEN_FOUND") >= 0) {
+    if (payload.indexOf("ABSEN_FOUND") >= 0 || payload.indexOf("SUCCESS") >= 0) {
       String nama = explodeGetByIndex(payload, ';', 1);
 
       lcd.clear();

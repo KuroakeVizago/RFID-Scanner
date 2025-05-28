@@ -268,6 +268,28 @@ void appCardDetectedAbsen() {
       delay(3000);
     }
 
+    if (payload.indexOf("TOO_LATE") >= 0) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Gagal Absen!");
+
+      lcd.setCursor(0, 1);
+      lcd.print("Absen Ditutup");
+
+      delay(2000);
+    }
+
+    if (payload.indexOf("TOO_SOON") >= 0) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Gagal Absen!");
+
+      lcd.setCursor(0, 1);
+      lcd.print("Absen Blm Dibuka");
+
+      delay(2000);
+    }
+
   } else {
     Serial.print("Error: ");
     Serial.println(http.errorToString(httpCode).c_str());

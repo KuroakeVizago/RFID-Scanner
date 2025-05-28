@@ -4,9 +4,13 @@
 #include <MFRC522.h>
 #include <WiFi.h>
 #include <time.h>
+#include <HTTPClient.h>
 
 const char* ssid = "Yasapintar";
 const char* password = "tuban456";
+
+const String DEVICE_SERIAL_NUMBER = "dvc-001";
+const String API_ENDPOINT = "https://4e52-180-247-94-40.ngrok-free.app/api";
 
 // Define RC522 pins
 #define SS_PIN 5   // GPIO5 (D5)
@@ -238,7 +242,23 @@ void appCardDetectedAdd() {
 
   beep();
 
-  delay(3000);  // Hold message
+  HTTPClient http;
+
+  String url = API_ENDPOINT + "/device/register-kartu?serial=" + DEVICE_SERIAL_NUMBER + "&no_kartu=" + uid;  // Ganti dengan URL kamu
+  Serial.println(url);
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+    String payload = http.getString();
+    Serial.println("Response:");
+    Serial.println(payload);
+  } else {
+    Serial.print("Error: ");
+    Serial.println(http.errorToString(httpCode).c_str());
+  }
+
+  http.end();
 
   appStateCurrent = INIT_STATE_ADD;
 

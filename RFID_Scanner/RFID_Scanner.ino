@@ -212,7 +212,68 @@ void appCardDetectedAbsen() {
 
   beep();
 
-  delay(3000);  // Hold message
+  HTTPClient http;
+
+  String absenId = "";
+  if (absenState == MASUK) {
+    absenId = "1";
+  }
+  if (absenState == PULANG) {
+    absenId = "2";
+  }
+
+  String url = API_ENDPOINT + "/device/absen?serial=" + DEVICE_SERIAL_NUMBER + "&no_kartu=" + uid + "&jadwal_detail_id=" + absenId;  // Ganti dengan URL kamu
+  Serial.println(url);
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+    String payload = http.getString();
+    Serial.println("Response:");
+    Serial.println(payload);
+
+    payload = explodeGetByIndex(payload, '<', 1);
+    payload = explodeGetByIndex(payload, '>', 0);
+
+    Serial.println(payload);
+
+    if (payload.indexOf("CARD_NOT_FOUND") >= 0) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Kartu belum");
+
+      lcd.setCursor(0, 1);
+      lcd.print("terdaftar");
+
+      delay(2000);
+    }
+    if (payload.indexOf("ABSEN_FOUND") >= 0) {
+      String nama = explodeGetByIndex(payload, ';', 1);
+
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Absen ");
+
+      lcd.setCursor(6, 0);
+      if (absenState == MASUK) {
+        lcd.print("MASUK");
+      }
+      if (absenState == PULANG) {
+        lcd.print("PULANG");
+      }
+
+      lcd.setCursor(0, 1);
+      lcd.print(nama);
+
+      delay(3000);
+    }
+
+  } else {
+    Serial.print("Error: ");
+    Serial.println(http.errorToString(httpCode).c_str());
+  }
+
+  http.end();
 
   appStateCurrent = INIT_STATE_ABSEN;
 
@@ -391,4 +452,24 @@ void listenButton() {
     Serial.println("MATI");
     appButtonStateCurrent = RELEASED;
   }
+}
+
+
+String explodeGetByIndex(String data, char separator, int index) {
+  String addtionalData = "TRAILINGexplodeGetByIndex";
+  String savedData = data + addtionalData;
+  int found = 0;
+  int strIndex[] = { 0, -1 };
+  int maxIndex = savedData.length() - 1;
+
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (savedData.charAt(i) == separator || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+  String result = found > index ? savedData.substring(strIndex[0], strIndex[1]) : "";
+  result.replace(addtionalData, "");
+  return result == addtionalData ? "" : result;
 }

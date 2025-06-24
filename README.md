@@ -3,15 +3,15 @@
 ## 📝 Description
 RFID card scanner that have purpose to detect person presence by using RFID Card
 
-`## 🚀 Features`
-`- RFID Card scanner`
-`- Sound notifier`
-`- Change Mode by using button`
-`- LCD Result display`
+## 🚀 Features
+- RFID Card scanner
+- Sound notifier
+- Change Mode by using button
+- LCD Result display
 
-## 🖼️ Project Overview / Architecture
-*(Optional - add diagram or description)*  
-Brief explanation of the system architecture. You can also include a flowchart or block diagram here.
+`## 🖼️ Project Overview / Architecture`
+`*(Optional - add diagram or description)*  `
+`Brief explanation of the system architecture. You can also include a flowchart or block diagram here.`
 
 ## 📦 Hardware Requirements
 - Wemos D1 R32

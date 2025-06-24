@@ -5,12 +5,13 @@
 #include <WiFi.h>
 #include <time.h>
 #include <HTTPClient.h>
+#include <DFRobotDFPlayerMini.h>
 
-const char* ssid = "Yasapintar";
-const char* password = "tuban456";
+const char* ssid = "Moshi-Mosh-2";
+const char* password = "12345678";
 
 const String DEVICE_SERIAL_NUMBER = "dvc-001";
-const String API_ENDPOINT = "https://4e52-180-247-94-40.ngrok-free.app/api";
+const String API_ENDPOINT = "https://absen.yasapintar.my.id/api";
 
 // Define RC522 pins
 #define SS_PIN 5   // GPIO5 (D5)
@@ -22,8 +23,15 @@ const String API_ENDPOINT = "https://4e52-180-247-94-40.ngrok-free.app/api";
 
 #define BUZZER_PIN 26  // VCC of buzzer to D3 (GPIO 17)
 
+//DF Player Pin
+#define RXD2 16  // Connect to TX of DFPlayer
+#define TXD2 17  // Connect to RX of DFPlayer
+
 MFRC522 rfid(SS_PIN, RST_PIN);
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Check your LCD I2C address if not 0x27
+
+DFRobotDFPlayerMini myDFPlayer;
+HardwareSerial mySerial(2); // Use Serial2 (HSPI UART) on ESP32
 
 String uid = "";
 
@@ -65,6 +73,9 @@ enum APP_STATE_ENUM {
 APP_STATE_ENUM appStateCurrent = INIT_STATE_ABSEN;
 
 void setup() {
+  appConnectSpeaker();
+
+
   // INIT Button
   pinMode(buttonPin, INPUT_PULLUP);  // Button uses internal pull-up
 
@@ -76,10 +87,12 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+
   // Init I2C LCD
   Wire.begin(I2C_SDA, I2C_SCL);
   lcd.init();
   lcd.backlight();
+
 
   appConnectWifi();
 
@@ -138,6 +151,22 @@ void beep() {
   digitalWrite(BUZZER_PIN, HIGH);  // Turn buzzer on
   delay(100);                      // Duration of beep
   digitalWrite(BUZZER_PIN, LOW);   // Turn buzzer off
+}
+
+void appConnectSpeaker() {
+  mySerial.begin(9600, SERIAL_8N1, RXD2, TXD2);
+
+  Serial.println("Initializing DFPlayer...");
+
+  if (!myDFPlayer.begin(mySerial)) {
+    Serial.println("Unable to begin DFPlayer Mini:");
+    Serial.println("1. Check connections");
+    Serial.println("2. Insert SD card");
+    while (true);
+  }
+
+  Serial.println("DFPlayer Mini online.");
+  myDFPlayer.volume(20);  // Set volume (0 to 30)
 }
 
 void appInitStateAdd() {
@@ -211,6 +240,7 @@ void appCardDetectedAbsen() {
   lcd.setCursor(0, 1);
   lcd.print(uid);
 
+  
   beep();
 
   HTTPClient http;
@@ -246,6 +276,8 @@ void appCardDetectedAbsen() {
       lcd.setCursor(0, 1);
       lcd.print("terdaftar");
 
+      myDFPlayer.play(2);     
+
       delay(2000);
     }
     if (payload.indexOf("ABSEN_FOUND") >= 0 || payload.indexOf("SUCCESS") >= 0) {
@@ -265,7 +297,7 @@ void appCardDetectedAbsen() {
 
       lcd.setCursor(0, 1);
       lcd.print(nama);
-
+      myDFPlayer.play(1);     
       delay(3000);
     }
 
@@ -276,6 +308,8 @@ void appCardDetectedAbsen() {
 
       lcd.setCursor(0, 1);
       lcd.print("Absen Ditutup");
+      
+      myDFPlayer.play(2);     
 
       delay(2000);
     }
@@ -287,6 +321,8 @@ void appCardDetectedAbsen() {
 
       lcd.setCursor(0, 1);
       lcd.print("Absen Blm Dibuka");
+      
+      myDFPlayer.play(2);     
 
       delay(2000);
     }
